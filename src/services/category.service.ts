@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import type { ExpenseCategory } from '@/types/category'
+import type { ExpenseCategory, CreateCategoryRequest } from '@/types/category'
 
 /**
  * Service function to retrieve all active expense categories for a given project.
@@ -20,3 +20,27 @@ export async function getExpenseCategories(projectId: string): Promise<ExpenseCa
 
   return (data ?? []) as ExpenseCategory[]
 }
+
+/**
+ * Service function to create a category record via Supabase RPC.
+ */
+export async function createCategory(
+  request: CreateCategoryRequest
+) {
+  const { data, error } = await supabase.rpc(
+    "create_category",
+    {
+      p_project_id: request.projectId,
+      p_name: request.name,
+      p_color: request.color,
+      p_icon: request.icon,
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+

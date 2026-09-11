@@ -11,7 +11,6 @@ import { AddExpenseButton } from './AddExpenseButton'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
 import { useActiveProject } from '@/hooks/useActiveProject'
-import { ACTIVE_PROJECT } from '@/constants/navigation'
 import { ROUTES } from '@/constants/routes'
 
 export interface AppHeaderProps {
@@ -123,13 +122,13 @@ export function AppHeader({ onToggleMobileSidebar }: AppHeaderProps) {
         <AddExpenseButton customLabel="Add Expense" />
 
         {/* User Avatar */}
-        <div className="hidden sm:flex items-center pl-1">
+        {/* <div className="hidden sm:flex items-center pl-1">
           <img
             src={ACTIVE_PROJECT.user.avatar}
             alt={ACTIVE_PROJECT.user.name}
             className="h-8 w-8 rounded-full object-cover border border-border"
           />
-        </div>
+        </div> */}
       </div>
     </header>
   )

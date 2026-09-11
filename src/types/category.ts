@@ -16,3 +16,11 @@ export interface ExpenseCategorySummary {
   icon: string | null
   total_expense: number
 }
+
+export interface CreateCategoryRequest {
+  projectId: string
+  name: string
+  color: string
+  icon?: string | null
+}
+

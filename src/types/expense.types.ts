@@ -88,3 +88,20 @@ export interface PaginatedExpensesResponse {
   count: number
 }
 
+export interface RawExpenseSpend {
+  amount: number
+  expense_date: string
+}
+
+export interface MonthlySpendItem {
+  month: string
+  spent: number
+  target?: number
+}
+
+export interface ExpenseFilters {
+  categoryId?: string
+  startDate?: string
+  endDate?: string
+}
+

@@ -7,7 +7,7 @@ import {
   X,
   ChevronDown,
 } from 'lucide-react'
-import { MAIN_NAV_ITEMS, ACTIVE_PROJECT } from '@/constants/navigation'
+import { MAIN_NAV_ITEMS } from '@/constants/navigation'
 import { Badge } from '@/components/ui/badge'
 import { useActiveProject } from '@/hooks/useActiveProject'
 import { formatCurrency } from '@/utils/formatters'
@@ -219,68 +219,6 @@ export function AppSidebar({
             )
           })}
         </nav>
-
-        {/* Bottom Section */}
-        <div className="mt-auto border-t border-border/80 p-3 space-y-3">
-          {/* Budget Utilized Widget (dynamically using activeProject total_budget) */}
-          {!isCollapsed && (
-            <div className="rounded-xl border border-border/70 bg-card p-3 shadow-level-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-medium">Budget Utilized</span>
-                <span className="font-semibold text-foreground tabular-nums">37.5%</span>
-              </div>
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-emerald-500 w-[37.5%]" />
-              </div>
-              <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
-                <span>₹3.75M spent</span>
-                <span>
-                  {activeProject?.total_budget
-                    ? `${formatCurrency(activeProject.total_budget, { compact: true })} cap`
-                    : '₹10.0M cap'}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* User Profile Card */}
-          <div
-            className={cn(
-              'flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/60',
-              isCollapsed && 'justify-center p-1'
-            )}
-          >
-            <div className="relative shrink-0">
-              <img
-                src={ACTIVE_PROJECT.user.avatar}
-                alt={ACTIVE_PROJECT.user.name}
-                className="h-8 w-8 rounded-full object-cover border border-border"
-              />
-              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-card" />
-            </div>
-
-            {!isCollapsed && (
-              <div className="flex flex-1 flex-col overflow-hidden text-left">
-                <span className="truncate text-xs font-semibold text-foreground">
-                  {ACTIVE_PROJECT.user.name}
-                </span>
-                <span className="truncate text-[11px] text-muted-foreground">
-                  {ACTIVE_PROJECT.user.role}
-                </span>
-              </div>
-            )}
-
-            {!isCollapsed && (
-              <button
-                type="button"
-                className="text-muted-foreground hover:text-foreground p-1 rounded"
-                aria-label="User account options"
-              >
-                <MoreVertical className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
       </aside>
     </>
   )

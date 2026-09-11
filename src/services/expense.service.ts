@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import type { Expense, PaginatedExpensesResponse } from '@/types/expense.types'
+import type { Expense, PaginatedExpensesResponse, ExpenseFilters } from '@/types/expense.types'
 import type {
   CreateExpenseRequest,
   CreateExpenseResponse,
@@ -32,18 +32,33 @@ const RECEIPT_BUCKET = 'expense-receipts'
 export async function getExpenses(
   projectId: string,
   page: number,
-  pageSize: number
+  pageSize: number,
+  filters?: ExpenseFilters
 ): Promise<PaginatedExpensesResponse> {
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
-  const { data, error, count } = await supabase
+  let query = supabase
     .from('expenses')
     .select(
       'id, amount, expense_date, description, status, invoice_number, created_at, category:categories(id, name, color, icon), vendor:vendors(id, name), payment_method:payment_methods(id, name)',
       { count: 'exact' }
     )
     .eq('project_id', projectId)
+
+  if (filters?.categoryId) {
+    query = query.eq('category_id', filters.categoryId)
+  }
+
+  if (filters?.startDate) {
+    query = query.gte('expense_date', filters.startDate)
+  }
+
+  if (filters?.endDate) {
+    query = query.lte('expense_date', filters.endDate)
+  }
+
+  const { data, error, count } = await query
     .order('expense_date', { ascending: false })
     .order('created_at', { ascending: false })
     .range(from, to)
@@ -56,6 +71,44 @@ export async function getExpenses(
     data: (data ?? []) as unknown as Expense[],
     count: count ?? 0,
   }
+}
+
+/**
+ * Service function to retrieve all expenses for a project without pagination,
+ * applying any active filters. Used specifically for complete data export (e.g. CSV).
+ */
+export async function getAllExpensesForExport(
+  projectId: string,
+  filters?: ExpenseFilters
+): Promise<Expense[]> {
+  let query = supabase
+    .from('expenses')
+    .select(
+      'id, amount, expense_date, description, status, invoice_number, created_at, category:categories(id, name, color, icon), vendor:vendors(id, name), payment_method:payment_methods(id, name)'
+    )
+    .eq('project_id', projectId)
+
+  if (filters?.categoryId) {
+    query = query.eq('category_id', filters.categoryId)
+  }
+
+  if (filters?.startDate) {
+    query = query.gte('expense_date', filters.startDate)
+  }
+
+  if (filters?.endDate) {
+    query = query.lte('expense_date', filters.endDate)
+  }
+
+  const { data, error } = await query
+    .order('expense_date', { ascending: false })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw error
+  }
+
+  return (data ?? []) as unknown as Expense[]
 }
 
 /**

@@ -9,12 +9,6 @@ import {
   PiggyBank,
   TrendingUp,
   UserPlus,
-  Zap,
-  Hammer,
-  Droplets,
-  Layers,
-  FileCheck,
-  Paintbrush,
   ArrowRight,
   Tags,
   AlertCircle,
@@ -45,16 +39,18 @@ import { AddExpenseButton } from '@/components/common/AddExpenseButton'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { CategoryIcon } from '@/components/common/CategoryIcon'
 import { useActiveProject } from '@/hooks/useActiveProject'
-import { useExpenseByCategoryQuery } from '@/hooks/queries'
+import {
+  useExpenseByCategoryQuery,
+  useExpensesQuery,
+  useMonthlySpendingQuery,
+} from '@/hooks/queries'
 import { formatDate } from '@/utils/formatters'
 import { cn } from '@/lib/utils'
 import {
-  MONTHLY_SPEND_DATA,
   KEY_CONTRACTORS,
-  RECENT_EXPENSES,
   CONSTRUCTION_MILESTONES,
 } from '@/constants/mockData'
-import type { ExpenseRecord } from '@/types/expense.types'
+import type { Expense } from '@/types/expense.types'
 import { toast } from 'react-toastify'
 import { Link } from 'react-router-dom'
 import { ROUTES } from '@/constants/routes'
@@ -78,72 +74,108 @@ export function DashboardPage() {
     refetch: refetchCategoryExpenses,
   } = useExpenseByCategoryQuery(activeProject?.id ?? '')
 
+  // Date range for Monthly Spending Trend (aligned with project dates or continuous 12m window)
+  const { startDate, endDate } = useMemo(() => {
+    const now = new Date()
+    const defaultStart = new Date(now.getFullYear(), now.getMonth() - 11, 1)
+    const defaultEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    const formatDateStr = (d: Date) => {
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    }
+
+    return {
+      startDate: activeProject?.start_date || formatDateStr(defaultStart),
+      endDate: activeProject?.expected_end_date || formatDateStr(defaultEnd),
+    }
+  }, [activeProject?.start_date, activeProject?.expected_end_date])
+
+  // Query monthly spending trend from Supabase
+  const {
+    data: monthlySpendData = [],
+    isLoading: isLoadingMonthlySpend,
+    isError: isMonthlySpendError,
+    error: monthlySpendError,
+    refetch: refetchMonthlySpend,
+  } = useMonthlySpendingQuery(
+    activeProject?.id ?? '',
+    startDate,
+    endDate,
+    activeProject?.total_budget
+  )
+
+  // Query recent 10 expenses for ledger preview
+  const {
+    data: recentExpensesResponse,
+    isLoading: isLoadingRecentExpenses,
+    isError: isRecentExpensesError,
+    error: recentExpensesError,
+    refetch: refetchRecentExpenses,
+  } = useExpensesQuery(activeProject?.id ?? '', 1, 10)
+
+  // Dynamic monthly average spend from real data
+  const avgMonthlySpend = useMemo(() => {
+    if (monthlySpendData.length === 0) return 0
+    const total = monthlySpendData.reduce((sum, item) => sum + item.spent, 0)
+    return Math.round(total / monthlySpendData.length)
+  }, [monthlySpendData])
+
   // Total expense across categories (no client-side grouping/aggregation)
   const totalCategoryExpense = useMemo(() => {
     return (categoryExpenses ?? []).reduce((sum, item) => sum + item.total_expense, 0)
   }, [categoryExpenses])
 
   // Define columns for Recent Expenses DataTable
-  const columns = useMemo<ColumnDef<ExpenseRecord, unknown>[]>(
+  const columns = useMemo<ColumnDef<Expense, unknown>[]>(
     () => [
       {
-        accessorKey: 'date',
+        accessorKey: 'expense_date',
         header: 'Date',
         cell: ({ row }) => (
-          <DateDisplay date={row.original.date} format="medium" className="text-xs sm:text-sm" />
+          <DateDisplay
+            date={row.original.expense_date}
+            format="medium"
+            className="text-xs sm:text-sm font-medium whitespace-nowrap"
+          />
         ),
       },
       {
-        accessorKey: 'category',
+        id: 'category',
         header: 'Category',
         cell: ({ row }) => {
-          const category = row.original.category
-          let Icon = Layers
-          let iconColor = 'text-primary'
-
-          if (category.includes('Electrical')) {
-            Icon = Zap
-            iconColor = 'text-amber-500'
-          } else if (category.includes('Steel')) {
-            Icon = Hammer
-            iconColor = 'text-blue-500'
-          } else if (category.includes('Plumbing')) {
-            Icon = Droplets
-            iconColor = 'text-emerald-500'
-          } else if (category.includes('Civil')) {
-            Icon = Layers
-            iconColor = 'text-indigo-500'
-          } else if (category.includes('Permit')) {
-            Icon = FileCheck
-            iconColor = 'text-slate-500'
-          } else if (category.includes('Painting')) {
-            Icon = Paintbrush
-            iconColor = 'text-amber-700'
-          }
-
+          const cat = row.original.category
           return (
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/50 px-2.5 py-0.5 text-xs font-medium text-foreground">
-              <Icon className={`h-3 w-3 ${iconColor}`} />
-              <span>{category}</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <CategoryIcon
+                icon={cat?.icon}
+                color={cat?.color}
+                size="sm"
+                withBackground
+              />
+              <span className="font-medium text-xs sm:text-sm text-foreground truncate max-w-[130px]">
+                {cat?.name ?? 'General'}
+              </span>
             </div>
           )
         },
       },
       {
-        accessorKey: 'vendor',
+        id: 'vendor',
         header: 'Payee / Vendor',
         cell: ({ row }) => (
-          <span className="font-medium text-foreground text-xs sm:text-sm">
-            {row.original.vendor}
+          <span className="font-medium text-foreground text-xs sm:text-sm truncate block max-w-[140px]">
+            {row.original.vendor?.name || '—'}
           </span>
         ),
       },
       {
-        accessorKey: 'paymentMethod',
+        id: 'payment_method',
         header: 'Method',
         cell: ({ row }) => (
           <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {row.original.paymentMethod}
+            {row.original.payment_method?.name || '—'}
           </span>
         ),
       },
@@ -163,16 +195,21 @@ export function DashboardPage() {
     []
   )
 
+  const recentExpenses = useMemo(() => {
+    return recentExpensesResponse?.data ?? []
+  }, [recentExpensesResponse])
+
   const filteredExpenses = useMemo(() => {
-    if (!filterQuery) return RECENT_EXPENSES
+    if (!filterQuery) return recentExpenses
     const q = filterQuery.toLowerCase()
-    return RECENT_EXPENSES.filter(
+    return recentExpenses.filter(
       (e) =>
-        e.vendor.toLowerCase().includes(q) ||
-        e.category.toLowerCase().includes(q) ||
-        e.paymentMethod.toLowerCase().includes(q)
+        (e.vendor?.name?.toLowerCase().includes(q) ?? false) ||
+        (e.category?.name?.toLowerCase().includes(q) ?? false) ||
+        (e.payment_method?.name?.toLowerCase().includes(q) ?? false) ||
+        (e.description?.toLowerCase().includes(q) ?? false)
     )
-  }, [filterQuery])
+  }, [recentExpenses, filterQuery])
 
   const handleExportLedger = () => {
     toast.info('Generating PDF & CSV Ledger Export...')
@@ -193,9 +230,9 @@ export function DashboardPage() {
                   {activeProject?.name ?? 'Home Construction Project'}
                 </h1>
               )}
-              <Badge variant="success" dot className="font-medium">
+              {/* <Badge variant="success" dot className="font-medium">
                 Structural Execution Active
-              </Badge>
+              </Badge> */}
             </div>
 
             <div className="flex flex-wrap items-center gap-y-1.5 gap-x-4 text-xs sm:text-sm text-muted-foreground">
@@ -222,7 +259,7 @@ export function DashboardPage() {
 
           {/* Right: Period segmented controls & action buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="inline-flex items-center rounded-lg border border-border bg-muted/60 p-1 text-xs font-medium">
+            {/* <div className="inline-flex items-center rounded-lg border border-border bg-muted/60 p-1 text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setActivePeriod('12m')}
@@ -276,7 +313,7 @@ export function DashboardPage() {
             >
               <Download className="h-3.5 w-3.5" />
               <span>Export Ledger</span>
-            </Button>
+            </Button> */}
 
             <AddExpenseButton customLabel="New Expense" />
           </div>
@@ -299,16 +336,16 @@ export function DashboardPage() {
                 <div className="h-9 w-36 bg-muted-foreground/20 rounded animate-pulse" />
               ) : (
                 <CurrencyDisplay
-                  amount={activeProject?.total_budget ?? 5000000}
+                  amount={activeProject?.total_budget ?? 0}
                   className="font-display text-2xl sm:text-3xl font-bold text-foreground"
                 />
               )}
             </div>
             <div className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              {/* <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Allocated capital</span>
                 <span className="font-semibold text-foreground">100% Baseline</span>
-              </div>
+              </div> */}
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div className="h-full rounded-full bg-primary w-full" />
               </div>
@@ -344,10 +381,10 @@ export function DashboardPage() {
                 </strong>{' '}
                 utilized
               </span>
-              <Badge variant="primary" className="text-[11px] font-semibold py-0.5">
+              {/* <Badge variant="primary" className="text-[11px] font-semibold py-0.5">
                 <TrendingUp className="h-3 w-3 mr-1" />
                 Live RPC
-              </Badge>
+              </Badge> */}
             </div>
           </CardContent>
         </Card>
@@ -380,15 +417,15 @@ export function DashboardPage() {
                 </strong>{' '}
                 contingency
               </span>
-              <Badge variant="success" dot className="font-semibold">
+              {/* <Badge variant="success" dot className="font-semibold">
                 On Track
-              </Badge>
+              </Badge> */}
             </div>
           </CardContent>
         </Card>
 
         {/* October Spend */}
-        <Card className="hover:shadow-level-2 transition-shadow">
+        {/* <Card className="hover:shadow-level-2 transition-shadow">
           <CardContent className="p-5 space-y-3">
             <div className="flex items-center justify-between">
               <span className="label-sm text-muted-foreground">October Spend</span>
@@ -407,7 +444,7 @@ export function DashboardPage() {
               <span className="font-semibold text-foreground">14 Transactions</span>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* 3. Middle Analytical Section (Monthly Trend + Category Breakdown) */}
@@ -422,7 +459,9 @@ export function DashboardPage() {
                     Monthly Spending Trend
                   </h3>
                   <Badge variant="primary" className="text-[11px]">
-                    Avg: ₹1.56L/mo
+                    Avg: ₹{avgMonthlySpend >= 100000
+                      ? `${(avgMonthlySpend / 100000).toFixed(2)}L`
+                      : avgMonthlySpend.toLocaleString()}/mo
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -443,60 +482,95 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Recharts Composed Chart */}
-            <div className="h-64 sm:h-72 w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart
-                  data={MONTHLY_SPEND_DATA}
-                  margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+            {/* Recharts Composed Chart with Loading/Error/Empty states */}
+            {isLoadingMonthlySpend ? (
+              <div className="h-64 sm:h-72 flex flex-col items-center justify-center gap-2">
+                <LoadingSpinner size="md" label="Loading monthly spending..." />
+                <span className="text-xs text-muted-foreground">Fetching project disbursements...</span>
+              </div>
+            ) : isMonthlySpendError ? (
+              <div className="h-64 sm:h-72 flex flex-col items-center justify-center text-center p-4 gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive border border-destructive/20">
+                  <AlertCircle className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-foreground">Failed to load spending trend</p>
+                  <p className="text-[11px] text-muted-foreground max-w-xs">
+                    {monthlySpendError?.message || 'An unexpected error occurred while querying Supabase.'}
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => refetchMonthlySpend()}
+                  className="gap-1.5 h-7 text-xs"
                 >
-                  <XAxis
-                    dataKey="month"
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(val: number) => `₹${val / 1000}k`}
-                  />
-                  <Tooltip
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="rounded-xl border border-border bg-slate-900 text-white p-3 shadow-level-3 text-xs space-y-1">
-                            <p className="font-bold">
-                              {label} 2024: ₹{(payload[0]?.value as number)?.toLocaleString()}
-                            </p>
-                            <p className="text-slate-300 text-[11px]">
-                              Peak Construction Phase Execution
-                            </p>
-                          </div>
-                        )
-                      }
-                      return null
-                    }}
-                  />
-                  <Bar
-                    dataKey="spent"
-                    fill="#4f46e5"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={32}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="target"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
+                  <RefreshCw className="h-3 w-3" />
+                  <span>Retry</span>
+                </Button>
+              </div>
+            ) : monthlySpendData.length === 0 ? (
+              <div className="h-64 sm:h-72 flex flex-col items-center justify-center text-center p-4">
+                <p className="text-xs font-semibold text-foreground">No spending recorded</p>
+                <p className="text-[11px] text-muted-foreground max-w-xs mt-1">
+                  Paid disbursements for this project will appear here automatically.
+                </p>
+              </div>
+            ) : (
+              <div className="h-64 sm:h-72 w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart
+                    data={monthlySpendData}
+                    margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+                  >
+                    <XAxis
+                      dataKey="month"
+                      stroke="#94a3b8"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      stroke="#94a3b8"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(val: number) => `₹${val / 1000}k`}
+                    />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="rounded-xl border border-border bg-slate-900 text-white p-3 shadow-level-3 text-xs space-y-1">
+                              <p className="font-bold">
+                                {label}: ₹{(payload[0]?.value as number)?.toLocaleString()}
+                              </p>
+                              <p className="text-slate-300 text-[11px]">
+                                Monthly Disbursement
+                              </p>
+                            </div>
+                          )
+                        }
+                        return null
+                      }}
+                    />
+                    <Bar
+                      dataKey="spent"
+                      fill="#4f46e5"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={32}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="target"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
 
           {/* Bottom Trend Note */}
@@ -526,8 +600,8 @@ export function DashboardPage() {
                   {isLoadingCategoryExpenses
                     ? 'Loading category breakdown...'
                     : categoryExpenses && categoryExpenses.length > 0
-                    ? `Disbursement across ${categoryExpenses.length} categories`
-                    : 'No expense records found'}
+                      ? `Disbursement across ${categoryExpenses.length} categories`
+                      : 'No expense records found'}
                 </p>
               </div>
               <Button
@@ -676,8 +750,7 @@ export function DashboardPage() {
 
       {/* 4. Lower Section (Key Contractors + Recent Expenses Table) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left: Key Contractors (1 col) */}
-        <Card className="flex flex-col justify-between">
+        {/* <Card className="flex flex-col justify-between">
           <div className="p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -696,7 +769,6 @@ export function DashboardPage() {
               </Link>
             </div>
 
-            {/* Contractors List */}
             <div className="space-y-3">
               {KEY_CONTRACTORS.map((c) => (
                 <div
@@ -754,10 +826,10 @@ export function DashboardPage() {
               <span>Register New Contractor</span>
             </Button>
           </div>
-        </Card>
+        </Card> */}
 
         {/* Right: Recent Expenses Table (2 cols) */}
-        <Card className="lg:col-span-2 flex flex-col justify-between">
+        <Card className="lg:col-span-5 flex flex-col justify-between">
           <div className="p-5 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
@@ -790,15 +862,21 @@ export function DashboardPage() {
             <DataTable
               columns={columns}
               data={filteredExpenses}
-              totalCount={84}
-              pageSize={6}
+              isLoading={isLoadingRecentExpenses}
+              emptyTitle={isRecentExpensesError ? 'Failed to load expenses' : 'No recent expenses'}
+              emptyDescription={
+                recentExpensesError?.message ||
+                'No expenses recorded for this project yet.'
+              }
+              totalCount={recentExpensesResponse?.count ?? filteredExpenses.length}
+              pageSize={10}
             />
           </div>
         </Card>
       </div>
 
       {/* 5. Construction Phase Inspection Cards (Bottom 3 Cards) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {CONSTRUCTION_MILESTONES.map((milestone) => (
           <Card key={milestone.id} className="overflow-hidden hover:shadow-level-2 transition-all group">
             <div className="p-4 pb-3 flex items-center justify-between">
@@ -810,8 +888,8 @@ export function DashboardPage() {
                   milestone.badgeVariant === 'success'
                     ? 'success'
                     : milestone.badgeVariant === 'primary'
-                    ? 'primary'
-                    : 'warning'
+                      ? 'primary'
+                      : 'warning'
                 }
                 className="text-[10px]"
               >
@@ -835,7 +913,7 @@ export function DashboardPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
+      </div> */}
     </PageContainer>
   )
 }
