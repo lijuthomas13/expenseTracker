@@ -1,17 +1,26 @@
 import { supabase } from '@/lib/supabase/client'
-import type { Vendor } from '@/types/expense'
+import type { Vendor, CreateVendorRequest } from '@/types/vendor'
 
 /**
- * Service function to retrieve vendors.
+ * Service function to retrieve all active vendors for a project.
  * Directly communicates with Supabase and throws any client/network errors.
- * No React code resides in this service layer.
  */
-export async function getVendors(projectId?: string): Promise<Vendor[]> {
-  void projectId // Maintained for interface consistency across project-scoped services
-
+export async function getVendors(projectId: string): Promise<Vendor[]> {
   const { data, error } = await supabase
     .from('vendors')
-    .select('*')
+    .select(`
+      id,
+      project_id,
+      name,
+      phone,
+      vendor_type,
+      notes,
+      is_active,
+      created_at,
+      updated_at
+    `)
+    .eq('project_id', projectId)
+    .eq('is_active', true)
     .order('name', { ascending: true })
 
   if (error) {
@@ -20,3 +29,25 @@ export async function getVendors(projectId?: string): Promise<Vendor[]> {
 
   return (data ?? []) as Vendor[]
 }
+
+/**
+ * Service function to create a vendor record via Supabase RPC.
+ */
+export async function createVendor(
+  request: CreateVendorRequest
+) {
+  const { data, error } = await supabase.rpc('create_vendor', {
+    p_project_id: request.projectId,
+    p_name: request.name,
+    p_phone: request.phone ?? null,
+    p_vendor_type: request.vendorType ?? null,
+    p_notes: request.notes ?? null,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+

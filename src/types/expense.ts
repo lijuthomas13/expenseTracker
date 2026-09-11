@@ -28,10 +28,5 @@ export interface PaymentMethod {
   created_at?: string
 }
 
-export interface Vendor {
-  id: string
-  name: string
-  project_id?: string | null
-  is_active?: boolean
-  created_at?: string
-}
+export type { Vendor } from './vendor'
+
