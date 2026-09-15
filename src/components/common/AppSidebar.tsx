@@ -3,14 +3,12 @@ import {
   Home,
   PanelLeftClose,
   PanelLeftOpen,
-  MoreVertical,
   X,
-  ChevronDown,
 } from 'lucide-react'
 import { MAIN_NAV_ITEMS } from '@/constants/navigation'
 import { Badge } from '@/components/ui/badge'
+import { Combobox } from '@/components/ui/combobox'
 import { useActiveProject } from '@/hooks/useActiveProject'
-import { formatCurrency } from '@/utils/formatters'
 import { cn } from '@/lib/utils'
 
 export interface AppSidebarProps {
@@ -137,20 +135,21 @@ export function AppSidebar({
                 </div>
 
                 {projects.length > 1 ? (
-                  <div className="relative mt-1">
-                    <select
+                  <div className="mt-1">
+                    <Combobox
+                      placeholder="Select active project..."
+                      searchPlaceholder="Search projects..."
+                      emptyText="No projects found."
+                      className="h-8 font-medium text-xs bg-muted/20 border-border/70 hover:bg-muted/40"
+                      options={projects.map((p) => ({
+                        value: p.id,
+                        label: p.name,
+                      }))}
                       value={selectedProjectId ?? activeProject?.id ?? ''}
-                      onChange={(e) => setSelectedProjectId(e.target.value)}
-                      className="w-full appearance-none bg-transparent pr-6 text-sm font-semibold text-foreground focus:outline-none cursor-pointer truncate"
-                      aria-label="Select active project"
-                    >
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.id} className="bg-card text-foreground">
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      onChange={(val) => {
+                        if (val) setSelectedProjectId(val)
+                      }}
+                    />
                   </div>
                 ) : (
                   <div className="mt-1 text-sm font-semibold text-foreground truncate">

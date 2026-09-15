@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Combobox } from '@/components/ui/combobox'
+import { CategoryIcon } from '@/components/common/CategoryIcon'
 import { useActiveProject } from '@/hooks/useActiveProject'
 import {
   useExpenseCategoriesQuery,
@@ -365,27 +367,23 @@ export function RecordExpenseDialog({
                   name="category_id"
                   control={control}
                   render={({ field }) => (
-                    <select
+                    <Combobox
                       id="category_id"
                       aria-label="Category"
-                      aria-invalid={!!errors.category_id}
-                      aria-describedby={errors.category_id ? 'category-error' : undefined}
                       disabled={isSaving || isLoadingCategories}
-                      className={cn(
-                        'flex h-10 w-full rounded-lg border border-border/80 bg-muted/30 px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50',
-                        errors.category_id && 'border-destructive focus-visible:ring-destructive/30'
-                      )}
-                      {...field}
-                    >
-                      <option value="" disabled>
-                        {isLoadingCategories ? 'Loading categories...' : 'Select category...'}
-                      </option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder={isLoadingCategories ? 'Loading categories...' : 'Select category...'}
+                      searchPlaceholder="Search category..."
+                      emptyText="No categories found."
+                      error={!!errors.category_id}
+                      options={categories.map((category) => ({
+                        value: category.id,
+                        label: category.name,
+                        color: category.color,
+                        icon: <CategoryIcon icon={category.icon} color={category.color} size="sm" />,
+                      }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
                   )}
                 />
                 {errors.category_id && (
@@ -411,22 +409,22 @@ export function RecordExpenseDialog({
                   name="vendor_id"
                   control={control}
                   render={({ field }) => (
-                    <select
+                    <Combobox
                       id="vendor_id"
                       aria-label="Vendor or Contractor"
                       disabled={isSaving || isLoadingVendors}
-                      className="flex h-10 w-full rounded-lg border border-border/80 bg-muted/30 px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
-                      {...field}
-                    >
-                      <option value="">
-                        {isLoadingVendors ? 'Loading vendors...' : 'e.g. ABC Constructions (optional)'}
-                      </option>
-                      {vendors.map((vendor) => (
-                        <option key={vendor.id} value={vendor.id}>
-                          {vendor.name}
-                        </option>
-                      ))}
-                    </select>
+                      allowClear
+                      placeholder={isLoadingVendors ? 'Loading vendors...' : 'e.g. ABC Constructions (optional)'}
+                      searchPlaceholder="Search vendor / contractor..."
+                      emptyText="No vendors found."
+                      options={vendors.map((vendor) => ({
+                        value: vendor.id,
+                        label: vendor.name,
+                        description: vendor.vendor_type || undefined,
+                      }))}
+                      value={field.value || ''}
+                      onChange={(val) => field.onChange(val || '')}
+                    />
                   )}
                 />
               </div>
@@ -444,27 +442,21 @@ export function RecordExpenseDialog({
                   name="payment_method_id"
                   control={control}
                   render={({ field }) => (
-                    <select
+                    <Combobox
                       id="payment_method_id"
                       aria-label="Payment Mode"
-                      aria-invalid={!!errors.payment_method_id}
-                      aria-describedby={errors.payment_method_id ? 'payment-error' : undefined}
                       disabled={isSaving || isLoadingPaymentMethods}
-                      className={cn(
-                        'flex h-10 w-full rounded-lg border border-border/80 bg-muted/30 px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50',
-                        errors.payment_method_id && 'border-destructive focus-visible:ring-destructive/30'
-                      )}
-                      {...field}
-                    >
-                      <option value="" disabled>
-                        {isLoadingPaymentMethods ? 'Loading payment modes...' : 'Select payment mode...'}
-                      </option>
-                      {paymentMethods.map((pm) => (
-                        <option key={pm.id} value={pm.id}>
-                          {pm.name}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder={isLoadingPaymentMethods ? 'Loading payment modes...' : 'Select payment mode...'}
+                      searchPlaceholder="Search payment mode..."
+                      emptyText="No payment modes found."
+                      error={!!errors.payment_method_id}
+                      options={paymentMethods.map((pm) => ({
+                        value: pm.id,
+                        label: pm.name,
+                      }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
                   )}
                 />
                 {errors.payment_method_id && (

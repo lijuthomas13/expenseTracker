@@ -27,6 +27,7 @@ import { CategoryIcon } from '@/components/common/CategoryIcon'
 import { AddExpenseButton } from '@/components/common/AddExpenseButton'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Combobox } from '@/components/ui/combobox'
 import { useActiveProject } from '@/hooks/useActiveProject'
 import { useExpensesQuery, useExpenseCategoriesQuery } from '@/hooks/queries'
 import { getAllExpensesForExport } from '@/services'
@@ -382,20 +383,23 @@ export function ExpensesPage() {
                           </button>
                         )}
                       </div>
-                      <select
+                      <Combobox
+                        placeholder={isLoadingCategories ? 'Loading categories...' : 'All Categories'}
+                        searchPlaceholder="Filter category..."
+                        emptyText="No categories found."
+                        allowClear
+                        className="h-9 text-xs"
+                        options={categories.map((cat) => ({
+                          value: cat.id,
+                          label: cat.name,
+                          color: cat.color,
+                          icon: <CategoryIcon icon={cat.icon} color={cat.color} size="sm" />,
+                        }))}
                         value={draftFilters.categoryId || ''}
-                        onChange={(e) =>
-                          setDraftFilters((prev) => ({ ...prev, categoryId: e.target.value }))
+                        onChange={(val) =>
+                          setDraftFilters((prev) => ({ ...prev, categoryId: val }))
                         }
-                        className="h-9 w-full rounded-lg border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                      >
-                        <option value="">All Categories</option>
-                        {categories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     {/* Date Range Filter */}
@@ -597,20 +601,23 @@ export function ExpensesPage() {
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Rows per page:</span>
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value))
-              setPage(1)
+          <Combobox
+            value={String(pageSize)}
+            onChange={(val) => {
+              if (val) {
+                setPageSize(Number(val))
+                setPage(1)
+              }
             }}
             aria-label="Rows per page"
-            className="h-7 rounded-md border border-border bg-card px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-          </select>
+            className="h-7 w-[72px] text-xs px-2"
+            options={[
+              { value: '5', label: '5' },
+              { value: '10', label: '10' },
+              { value: '20', label: '20' },
+              { value: '50', label: '50' },
+            ]}
+          />
         </div>
       </div>
 
