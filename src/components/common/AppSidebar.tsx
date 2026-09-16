@@ -1,14 +1,18 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home,
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  LogOut,
 } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { MAIN_NAV_ITEMS } from '@/constants/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Combobox } from '@/components/ui/combobox'
 import { useActiveProject } from '@/hooks/useActiveProject'
+import { useAuth } from '@/hooks/useAuth'
+import { ROUTES } from '@/constants/routes'
 import { cn } from '@/lib/utils'
 
 export interface AppSidebarProps {
@@ -25,6 +29,8 @@ export function AppSidebar({
   onCloseMobile,
 }: AppSidebarProps) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, signOut } = useAuth()
   const {
     projects,
     activeProject,
@@ -32,6 +38,30 @@ export function AppSidebar({
     setSelectedProjectId,
     isLoadingProjects,
   } = useActiveProject()
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      toast.success('Signed out successfully')
+      navigate(ROUTES.LOGIN, { replace: true })
+    } catch {
+      toast.error('Unable to sign out. Please try again.')
+    }
+  }
+
+  const fullName =
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email?.split('@')[0] ||
+    'User'
+
+  const initials =
+    fullName
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'U'
 
   return (
     <>
@@ -218,6 +248,48 @@ export function AppSidebar({
             )
           })}
         </nav>
+
+        {/* User Account & Logout Footer */}
+        <div className="border-t border-border/70 p-3">
+          {!isCollapsed ? (
+            <div className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 p-2">
+              <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs border border-primary/20">
+                  {initials}
+                </div>
+                <div className="flex flex-col overflow-hidden min-w-0">
+                  <span className="text-xs font-semibold text-foreground truncate">
+                    {fullName}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground truncate">
+                    {user?.email}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+                title="Sign out"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+                title={`Sign out (${fullName})`}
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
     </>
   )

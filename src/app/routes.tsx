@@ -10,12 +10,36 @@ import { VendorsSettingsPage } from '@/app/settings/vendors/VendorsSettingsPage'
 import { PaymentMethodsSettingsPage } from '@/app/settings/payment-methods/PaymentMethodsSettingsPage'
 import { UsersSettingsPage } from '@/app/settings/users/UsersSettingsPage'
 import { ProjectSettingsPage } from '@/app/settings/project/ProjectSettingsPage'
+import { LoginPage } from '@/pages/Login'
+import { SignUpPage } from '@/pages/SignUp'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { PublicOnlyRoute } from '@/components/auth/PublicOnlyRoute'
 import { ROUTES } from '@/constants/routes'
 
 export const router = createBrowserRouter([
   {
+    path: ROUTES.LOGIN,
+    element: (
+      <PublicOnlyRoute>
+        <LoginPage />
+      </PublicOnlyRoute>
+    ),
+  },
+  {
+    path: ROUTES.SIGNUP,
+    element: (
+      <PublicOnlyRoute>
+        <SignUpPage />
+      </PublicOnlyRoute>
+    ),
+  },
+  {
     path: ROUTES.HOME,
-    element: <AppLayout />,
+    element: (
+      <ProtectedRoute>
+        <AppLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         index: true,

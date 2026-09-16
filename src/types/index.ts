@@ -6,4 +6,4 @@ export * from './category'
 export * from './vendor'
 export * from './project'
 export * from './expense'
-
+export * from './auth.types'

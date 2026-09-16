@@ -1,16 +1,20 @@
-import { useLocation, Link } from 'react-router-dom'
+import { useLocation, Link, useNavigate } from 'react-router-dom'
 import {
   Bell,
   Menu,
   ChevronRight,
   Sun,
   Moon,
+  LogOut,
 } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { SearchInput } from './SearchInput'
 import { AddExpenseButton } from './AddExpenseButton'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { useTheme } from '@/hooks/useTheme'
 import { useActiveProject } from '@/hooks/useActiveProject'
+import { useAuth } from '@/hooks/useAuth'
 import { ROUTES } from '@/constants/routes'
 
 export interface AppHeaderProps {
@@ -19,8 +23,34 @@ export interface AppHeaderProps {
 
 export function AppHeader({ onToggleMobileSidebar }: AppHeaderProps) {
   const location = useLocation()
+  const navigate = useNavigate()
   const { resolvedTheme, setTheme } = useTheme()
   const { activeProject, isLoadingProjects } = useActiveProject()
+  const { user, signOut } = useAuth()
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      toast.success('Signed out successfully')
+      navigate(ROUTES.LOGIN, { replace: true })
+    } catch {
+      toast.error('Unable to sign out. Please try again.')
+    }
+  }
+
+  const fullName =
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email?.split('@')[0] ||
+    'User'
+
+  const initials =
+    fullName
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'U'
 
   const getPageTitle = () => {
     const path = location.pathname
@@ -121,14 +151,40 @@ export function AppHeader({ onToggleMobileSidebar }: AppHeaderProps) {
         {/* Reusable Add Expense CTA Button */}
         <AddExpenseButton customLabel="Add Expense" />
 
-        {/* User Avatar */}
-        {/* <div className="hidden sm:flex items-center pl-1">
-          <img
-            src={ACTIVE_PROJECT.user.avatar}
-            alt={ACTIVE_PROJECT.user.name}
-            className="h-8 w-8 rounded-full object-cover border border-border"
-          />
-        </div> */}
+        {/* User Profile & Logout Popover */}
+        <div className="flex items-center pl-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="User account menu"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs border border-primary/20 hover:ring-2 hover:ring-primary/30 transition-all cursor-pointer select-none"
+                title={fullName}
+              >
+                {initials}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-2">
+              <div className="px-2.5 py-2">
+                <p className="text-xs font-semibold text-foreground truncate">
+                  {fullName}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {user?.email}
+                </p>
+              </div>
+              <div className="h-px bg-border my-1" />
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span>Sign out</span>
+              </button>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
     </header>
   )

@@ -9,6 +9,8 @@ export const ROUTES = {
   SETTINGS_PAYMENT_METHODS: '/settings/payment-methods',
   SETTINGS_USERS: '/settings/users',
   SETTINGS_PROJECT: '/settings/project',
+  LOGIN: '/login',
+  SIGNUP: '/signup',
 } as const
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES]

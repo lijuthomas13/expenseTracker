@@ -1,11 +1,9 @@
 import {
   LayoutDashboard,
   Receipt,
-  FileBarChart2,
   Settings,
   Tags,
   Users2,
-  CreditCard,
   Building2,
   SlidersHorizontal,
 } from 'lucide-react'
