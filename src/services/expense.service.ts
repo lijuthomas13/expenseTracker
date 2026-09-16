@@ -41,10 +41,11 @@ export async function getExpenses(
   let query = supabase
     .from('expenses')
     .select(
-      'id, amount, expense_date, description, status, invoice_number, created_at, category:categories(id, name, color, icon), vendor:vendors(id, name), payment_method:payment_methods(id, name)',
+      'id, amount, expense_date, description, status, invoice_number, created_at, category:categories(id, name, color, icon), vendor:vendors(id, name), payment_method:payment_methods(id, name), attachments:expense_attachments(id, storage_path, file_name, mime_type, created_at) ',
       { count: 'exact' }
     )
     .eq('project_id', projectId)
+    .is('deleted_at', null)
 
   if (filters?.categoryId) {
     query = query.eq('category_id', filters.categoryId)
@@ -87,6 +88,7 @@ export async function getAllExpensesForExport(
       'id, amount, expense_date, description, status, invoice_number, created_at, category:categories(id, name, color, icon), vendor:vendors(id, name), payment_method:payment_methods(id, name)'
     )
     .eq('project_id', projectId)
+    .is('deleted_at', null)
 
   if (filters?.categoryId) {
     query = query.eq('category_id', filters.categoryId)
@@ -202,3 +204,26 @@ export async function createExpense(
     expenseId: data as string,
   }
 }
+
+/**
+ * Service function to soft-delete an expense record via the `delete_expense` Supabase RPC.
+ *
+ * Requirements:
+ * - Invokes `public.delete_expense(p_expense_id)`.
+ * - Performs soft delete (sets deleted_at = now()).
+ * - Does not physically delete rows or storage files.
+ * - Returns boolean indicating whether an active record was updated.
+ * - Throws any encountered RPC or network errors.
+ */
+export async function deleteExpense(expenseId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('delete_expense', {
+    p_expense_id: expenseId,
+  })
+
+  if (error) {
+    throw error
+  }
+
+  return Boolean(data)
+}
+

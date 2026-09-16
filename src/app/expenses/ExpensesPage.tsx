@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Check,
   Loader2,
+  Trash2,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
@@ -25,9 +26,16 @@ import { DateDisplay } from '@/components/common/DateDisplay'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { CategoryIcon } from '@/components/common/CategoryIcon'
 import { AddExpenseButton } from '@/components/common/AddExpenseButton'
+import { ExpenseAttachmentsCell, DeleteExpenseDialog } from '@/components/expenses'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Combobox } from '@/components/ui/combobox'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useActiveProject } from '@/hooks/useActiveProject'
 import { useExpensesQuery, useExpenseCategoriesQuery } from '@/hooks/queries'
 import { getAllExpensesForExport } from '@/services'
@@ -53,6 +61,7 @@ export function ExpensesPage() {
   const [prevProjectId, setPrevProjectId] = useState(activeProject?.id)
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null)
 
   // Default project date bounds
   const defaultStartDate = activeProject?.start_date ?? ''
@@ -214,6 +223,35 @@ export function ExpensesPage() {
           />
         ),
       },
+      {
+        id: 'receipt',
+        header: 'Receipt',
+        cell: ({ row }) => (
+          <ExpenseAttachmentsCell attachments={row.original.attachments} />
+        ),
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="iconSm"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  onClick={() => setExpenseToDelete(row.original)}
+                  aria-label="Delete expense"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete expense</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ),
+      },
     ],
     []
   )
@@ -290,9 +328,13 @@ export function ExpensesPage() {
       toast.success(
         `Successfully exported ${allData.length} expense${allData.length === 1 ? '' : 's'}${filterSuffix}.`
       )
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to export expenses:', err)
-      toast.error(err?.message || 'Failed to export expenses. Please try again.')
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Failed to export expenses. Please try again.'
+      toast.error(errorMessage)
     } finally {
       setIsExporting(false)
     }
@@ -686,6 +728,20 @@ export function ExpensesPage() {
           onPageChange={(newPageIndex) => setPage(newPageIndex + 1)}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteExpenseDialog
+        open={Boolean(expenseToDelete)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExpenseToDelete(null)
+          }
+        }}
+        expense={expenseToDelete}
+        onSuccess={() => {
+          setExpenseToDelete(null)
+        }}
+      />
     </PageContainer>
   )
 }

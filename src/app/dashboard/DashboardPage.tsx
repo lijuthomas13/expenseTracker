@@ -2,17 +2,14 @@ import { useState, useMemo } from 'react'
 import {
   Calendar,
   CreditCard,
-  Download,
-  Filter,
   Landmark,
   MapPin,
   PiggyBank,
-  TrendingUp,
-  UserPlus,
   ArrowRight,
   Tags,
   AlertCircle,
   RefreshCw,
+  Trash2,
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -21,7 +18,7 @@ import {
   Line,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   PieChart,
   Pie,
   Cell,
@@ -36,7 +33,14 @@ import { DataTable } from '@/components/common/DataTable'
 import { CurrencyDisplay } from '@/components/common/CurrencyDisplay'
 import { DateDisplay } from '@/components/common/DateDisplay'
 import { AddExpenseButton } from '@/components/common/AddExpenseButton'
+import { ExpenseAttachmentsCell, DeleteExpenseDialog } from '@/components/expenses'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { CategoryIcon } from '@/components/common/CategoryIcon'
 import { useActiveProject } from '@/hooks/useActiveProject'
 import {
@@ -46,18 +50,14 @@ import {
 } from '@/hooks/queries'
 import { formatDate } from '@/utils/formatters'
 import { cn } from '@/lib/utils'
-import {
-  KEY_CONTRACTORS,
-  CONSTRUCTION_MILESTONES,
-} from '@/constants/mockData'
+
 import type { Expense } from '@/types/expense.types'
-import { toast } from 'react-toastify'
 import { Link } from 'react-router-dom'
 import { ROUTES } from '@/constants/routes'
 
 export function DashboardPage() {
-  const [activePeriod, setActivePeriod] = useState<'12m' | 'quarter' | 'custom'>('12m')
   const [filterQuery, setFilterQuery] = useState('')
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null)
 
   // Dynamically fetched Project from Supabase via React Query Hooks
   const {
@@ -112,7 +112,6 @@ export function DashboardPage() {
     isLoading: isLoadingRecentExpenses,
     isError: isRecentExpensesError,
     error: recentExpensesError,
-    refetch: refetchRecentExpenses,
   } = useExpensesQuery(activeProject?.id ?? '', 1, 10)
 
   // Dynamic monthly average spend from real data
@@ -191,6 +190,35 @@ export function DashboardPage() {
           </div>
         ),
       },
+      {
+        id: 'receipt',
+        header: 'Receipt',
+        cell: ({ row }) => (
+          <ExpenseAttachmentsCell attachments={row.original.attachments} />
+        ),
+      },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="iconSm"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  onClick={() => setExpenseToDelete(row.original)}
+                  aria-label="Delete expense"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete expense</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ),
+      },
     ],
     []
   )
@@ -211,9 +239,6 @@ export function DashboardPage() {
     )
   }, [recentExpenses, filterQuery])
 
-  const handleExportLedger = () => {
-    toast.info('Generating PDF & CSV Ledger Export...')
-  }
 
   return (
     <PageContainer className="space-y-6 pb-12">
@@ -537,7 +562,7 @@ export function DashboardPage() {
                       axisLine={false}
                       tickFormatter={(val: number) => `₹${val / 1000}k`}
                     />
-                    <Tooltip
+                    <RechartsTooltip
                       content={({ active, payload, label }) => {
                         if (active && payload && payload.length) {
                           return (
@@ -667,7 +692,7 @@ export function DashboardPage() {
                           />
                         ))}
                       </Pie>
-                      <Tooltip
+                      <RechartsTooltip
                         formatter={(value) => [
                           `₹${Number(value ?? 0).toLocaleString()}`,
                           'Total Expense',
@@ -914,6 +939,20 @@ export function DashboardPage() {
           </Card>
         ))}
       </div> */}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteExpenseDialog
+        open={Boolean(expenseToDelete)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExpenseToDelete(null)
+          }
+        }}
+        expense={expenseToDelete}
+        onSuccess={() => {
+          setExpenseToDelete(null)
+        }}
+      />
     </PageContainer>
   )
 }

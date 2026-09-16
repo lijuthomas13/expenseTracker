@@ -70,6 +70,14 @@ export interface ExpensePaymentMethodRef {
   name: string
 }
 
+export interface ExpenseAttachment {
+  id: string
+  storage_path: string
+  file_name: string | null
+  mime_type: string | null
+  created_at: string
+}
+
 export interface Expense {
   id: string
   amount: number
@@ -81,6 +89,7 @@ export interface Expense {
   category: ExpenseCategoryRef | null
   vendor: ExpenseVendorRef | null
   payment_method: ExpensePaymentMethodRef | null
+  attachments?: ExpenseAttachment[] | null
 }
 
 export interface PaginatedExpensesResponse {
