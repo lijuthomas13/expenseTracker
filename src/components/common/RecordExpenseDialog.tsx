@@ -118,15 +118,15 @@ export function RecordExpenseDialog({
   const receiptFile = watch('receipt')
 
   // Auto-select first category / payment method if available and not yet set
-  React.useEffect(() => {
-    if (categories.length > 0 && !watch('category_id')) {
-      setValue('category_id', categories[0].id)
-    }
-  }, [categories, setValue, watch])
+  // React.useEffect(() => {
+  //   if (categories.length > 0 && !watch('category_id')) {
+  //     setValue('category_id', categories[0].id)
+  //   }
+  // }, [categories, setValue, watch])
 
   React.useEffect(() => {
     if (paymentMethods.length > 0 && !watch('payment_method_id')) {
-      setValue('payment_method_id', paymentMethods[0].id)
+      setValue('payment_method_id', paymentMethods[5].id)
     }
   }, [paymentMethods, setValue, watch])
 
@@ -245,9 +245,9 @@ export function RecordExpenseDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={isSaving ? () => {} : onOpenChange}>
+    <Dialog open={open} onOpenChange={isSaving ? () => { } : onOpenChange}>
       <DialogContent
-        className="sm:max-w-xl p-0 overflow-hidden border border-border/80 shadow-level-4 rounded-2xl bg-card"
+        className="sm:max-w-xl w-[calc(100%-1rem)] max-h-[calc(100dvh-1rem)] p-0 border border-border/80 shadow-level-4 rounded-2xl bg-card flex flex-col overflow-hidden"
         aria-describedby="dialog-description"
       >
         {/* Modal Header */}
@@ -273,7 +273,11 @@ export function RecordExpenseDialog({
         </DialogHeader>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="px-6 py-5 space-y-4">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          noValidate
+          className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5 space-y-4"
+        >
           <fieldset disabled={isSaving} className="space-y-4">
             {/* Amount Field */}
             <div className="space-y-1.5">
@@ -596,7 +600,7 @@ export function RecordExpenseDialog({
             </div>
 
             {/* Optional Invoice Number */}
-            <div className="space-y-1.5">
+            {/* <div className="space-y-1.5">
               <label
                 htmlFor="invoice_number"
                 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between"
@@ -618,7 +622,7 @@ export function RecordExpenseDialog({
                   />
                 )}
               />
-            </div>
+            </div> */}
           </fieldset>
 
           {/* Dialog Footer Actions */}

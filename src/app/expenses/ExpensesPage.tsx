@@ -64,21 +64,22 @@ export function ExpensesPage() {
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null)
 
   // Default project date bounds
+  // const defaultStartDate = activeProject?.start_date ?? ''
   const defaultStartDate = activeProject?.start_date ?? ''
   const defaultEndDate = activeProject?.expected_end_date ?? ''
 
   // Applied server-side filters state
   const [appliedFilters, setAppliedFilters] = useState<ExpenseFilters>({
     categoryId: '',
-    startDate: defaultStartDate,
-    endDate: defaultEndDate,
+    startDate: '',
+    endDate: '',
   })
 
   // Draft filters state inside popover card
   const [draftFilters, setDraftFilters] = useState<ExpenseFilters>({
     categoryId: '',
-    startDate: defaultStartDate,
-    endDate: defaultEndDate,
+    startDate: '',
+    endDate: '',
   })
 
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -89,8 +90,8 @@ export function ExpensesPage() {
   if (activeProject?.id !== prevProjectId) {
     setPrevProjectId(activeProject?.id)
     setPage(1)
-    const newStart = activeProject?.start_date ?? ''
-    const newEnd = activeProject?.expected_end_date ?? ''
+    const newStart = ''
+    const newEnd = ''
     setAppliedFilters({
       categoryId: '',
       startDate: newStart,
@@ -108,6 +109,16 @@ export function ExpensesPage() {
     if (!isFilterOpen) return
 
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element | null
+      // Do not close if interacting with portaled combobox/dropdown options
+      if (
+        target?.closest('[data-radix-popper-content-wrapper]') ||
+        target?.closest('[role="listbox"]') ||
+        target?.closest('[cmdk-root]')
+      ) {
+        return
+      }
+
       if (
         filterPopoverRef.current &&
         !filterPopoverRef.current.contains(event.target as Node) &&
@@ -378,158 +389,167 @@ export function ExpensesPage() {
 
               {/* Popover Card */}
               {isFilterOpen && (
-                <div
-                  ref={filterPopoverRef}
-                  className="absolute right-0 top-full mt-2 z-50 w-80 sm:w-96 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-level-3 space-y-4 animate-in fade-in zoom-in-95 duration-150"
-                  role="dialog"
-                  aria-label="Filter expenses"
-                >
-                  {/* Popover Header */}
-                  <div className="flex items-center justify-between border-b border-border/70 pb-3">
-                    <div>
-                      <h4 className="font-display text-sm font-semibold text-foreground">
-                        Filter Expenses
-                      </h4>
-                      <p className="text-[11px] text-muted-foreground">
-                        Server-side category & date criteria
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="iconSm"
-                      className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
-                      onClick={() => setIsFilterOpen(false)}
-                      aria-label="Close filters"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
+                <>
+                  {/* Backdrop overlay for mobile */}
+                  <div
+                    className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-xs sm:hidden animate-in fade-in-0 duration-150"
+                    onClick={() => setIsFilterOpen(false)}
+                    aria-hidden="true"
+                  />
 
-                  {/* Filter Fields */}
-                  <div className="space-y-4">
-                    {/* Category Filter */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-foreground">
-                          Category
-                        </label>
-                        {draftFilters.categoryId && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDraftFilters((prev) => ({ ...prev, categoryId: '' }))
-                            }
-                            className="text-[10px] text-primary hover:underline"
-                          >
-                            Reset
-                          </button>
-                        )}
+                  <div
+                    ref={filterPopoverRef}
+                    className="fixed inset-x-3 top-20 sm:top-full sm:right-0 sm:left-auto sm:inset-x-auto sm:absolute mt-0 sm:mt-2 z-50 w-auto sm:w-96 max-w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-level-4 sm:shadow-level-3 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+                    role="dialog"
+                    aria-label="Filter expenses"
+                  >
+                    {/* Popover Header */}
+                    <div className="flex items-center justify-between border-b border-border/70 pb-3">
+                      <div>
+                        <h4 className="font-display text-sm font-semibold text-foreground">
+                          Filter Expenses
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground">
+                          Server-side category & date criteria
+                        </p>
                       </div>
-                      <Combobox
-                        placeholder={isLoadingCategories ? 'Loading categories...' : 'All Categories'}
-                        searchPlaceholder="Filter category..."
-                        emptyText="No categories found."
-                        allowClear
-                        className="h-9 text-xs"
-                        options={categories.map((cat) => ({
-                          value: cat.id,
-                          label: cat.name,
-                          color: cat.color,
-                          icon: <CategoryIcon icon={cat.icon} color={cat.color} size="sm" />,
-                        }))}
-                        value={draftFilters.categoryId || ''}
-                        onChange={(val) =>
-                          setDraftFilters((prev) => ({ ...prev, categoryId: val }))
-                        }
-                      />
-                    </div>
-
-                    {/* Date Range Filter */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-foreground">
-                          Date Range
-                        </label>
-                        {(defaultStartDate || defaultEndDate) && (
-                          <button
-                            type="button"
-                            onClick={handleResetToDefaultDates}
-                            className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                            title="Reset to project start & end dates"
-                          >
-                            <RotateCcw className="h-2.5 w-2.5" />
-                            <span>Project Timeline</span>
-                          </button>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <span className="text-[10px] text-muted-foreground mb-1 block">
-                            Start Date
-                          </span>
-                          <input
-                            type="date"
-                            value={draftFilters.startDate || ''}
-                            onChange={(e) =>
-                              setDraftFilters((prev) => ({
-                                ...prev,
-                                startDate: e.target.value,
-                              }))
-                            }
-                            className="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-muted-foreground mb-1 block">
-                            End Date
-                          </span>
-                          <input
-                            type="date"
-                            value={draftFilters.endDate || ''}
-                            onChange={(e) =>
-                              setDraftFilters((prev) => ({
-                                ...prev,
-                                endDate: e.target.value,
-                              }))
-                            }
-                            className="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Popover Footer Actions */}
-                  <div className="flex items-center justify-between border-t border-border/70 pt-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearAllFilters}
-                      className="text-xs text-muted-foreground hover:text-destructive h-8 px-2.5"
-                    >
-                      Clear All
-                    </Button>
-                    <div className="flex items-center gap-2">
                       <Button
-                        variant="secondary"
-                        size="sm"
+                        variant="ghost"
+                        size="iconSm"
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground"
                         onClick={() => setIsFilterOpen(false)}
-                        className="text-xs h-8 px-3"
+                        aria-label="Close filters"
                       >
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={handleApplyFilters}
-                        className="text-xs h-8 px-3 gap-1.5"
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                        <span>Apply</span>
+                        <X className="h-4 w-4" />
                       </Button>
                     </div>
+
+                    {/* Filter Fields */}
+                    <div className="space-y-4">
+                      {/* Category Filter */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-foreground">
+                            Category
+                          </label>
+                          {draftFilters.categoryId && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDraftFilters((prev) => ({ ...prev, categoryId: '' }))
+                              }
+                              className="text-[10px] text-primary hover:underline"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                        <Combobox
+                          placeholder={isLoadingCategories ? 'Loading categories...' : 'All Categories'}
+                          searchPlaceholder="Filter category..."
+                          emptyText="No categories found."
+                          allowClear
+                          className="h-9 text-xs"
+                          options={categories.map((cat) => ({
+                            value: cat.id,
+                            label: cat.name,
+                            color: cat.color,
+                            icon: <CategoryIcon icon={cat.icon} color={cat.color} size="sm" />,
+                          }))}
+                          value={draftFilters.categoryId || ''}
+                          onChange={(val) =>
+                            setDraftFilters((prev) => ({ ...prev, categoryId: val }))
+                          }
+                        />
+                      </div>
+
+                      {/* Date Range Filter */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-foreground">
+                            Date Range
+                          </label>
+                          {(defaultStartDate || defaultEndDate) && (
+                            <button
+                              type="button"
+                              onClick={handleResetToDefaultDates}
+                              className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                              title="Reset to project start & end dates"
+                            >
+                              <RotateCcw className="h-2.5 w-2.5" />
+                              <span>Project Timeline</span>
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[10px] text-muted-foreground mb-1 block">
+                              Start Date
+                            </span>
+                            <input
+                              type="date"
+                              value={draftFilters.startDate || ''}
+                              onChange={(e) =>
+                                setDraftFilters((prev) => ({
+                                  ...prev,
+                                  startDate: e.target.value,
+                                }))
+                              }
+                              className="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground mb-1 block">
+                              End Date
+                            </span>
+                            <input
+                              type="date"
+                              value={draftFilters.endDate || ''}
+                              onChange={(e) =>
+                                setDraftFilters((prev) => ({
+                                  ...prev,
+                                  endDate: e.target.value,
+                                }))
+                              }
+                              className="h-9 w-full rounded-lg border border-border bg-card px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Popover Footer Actions */}
+                    <div className="flex items-center justify-between border-t border-border/70 pt-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearAllFilters}
+                        className="text-xs text-muted-foreground hover:text-destructive h-8 px-2.5"
+                      >
+                        Clear All
+                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setIsFilterOpen(false)}
+                          className="text-xs h-8 px-3"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={handleApplyFilters}
+                          className="text-xs h-8 px-3 gap-1.5"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Apply</span>
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
 
