@@ -6,7 +6,7 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
+  // CommandInput,
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
@@ -44,7 +44,7 @@ export function Combobox({
   value,
   onChange,
   placeholder = 'Select option...',
-  searchPlaceholder = 'Search...',
+  // searchPlaceholder = 'Search...',
   emptyText = 'No options found.',
   disabled = false,
   className,
