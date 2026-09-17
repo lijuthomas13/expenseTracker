@@ -71,28 +71,36 @@ export function Combobox({
           aria-label={ariaLabel || placeholder}
           disabled={disabled}
           className={cn(
-            'flex h-10 w-full items-center justify-between rounded-lg border border-border/80 bg-muted/30 px-3 py-2 text-sm font-normal text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50',
+            'flex h-10 w-full items-center justify-between rounded-lg border border-border/80 bg-muted/30 px-3 py-2 text-sm font-normal text-foreground transition-colors hover:bg-muted/50 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50',
             !selectedOption && 'text-muted-foreground',
             error && 'border-destructive focus-visible:ring-destructive/30',
             className
           )}
         >
-          <div className="flex items-center gap-2 truncate text-left">
+          <div className="flex min-w-0 items-center gap-2 truncate text-left">
             {selectedOption?.icon && (
-              <span className="shrink-0 flex items-center">{selectedOption.icon}</span>
+              <span className="flex shrink-0 items-center">
+                {selectedOption.icon}
+              </span>
             )}
+
             {selectedOption?.color && (
               <span
-                className="h-3 w-3 rounded-full shrink-0 border border-border/60"
-                style={{ backgroundColor: selectedOption.color }}
+                className="h-3 w-3 shrink-0 rounded-full border border-border/60"
+                style={{
+                  backgroundColor: selectedOption.color,
+                }}
               />
             )}
+
             <span className="truncate">
-              {selectedOption ? selectedOption.label : placeholder}
+              {selectedOption
+                ? selectedOption.label
+                : placeholder}
             </span>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0 ml-2">
+          <div className="ml-2 flex shrink-0 items-center gap-1">
             {allowClear && selectedOption && !disabled && (
               <span
                 role="button"
@@ -107,64 +115,112 @@ export function Combobox({
                     onChange('')
                   }
                 }}
-                className="rounded p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 title="Clear selection"
               >
                 <X className="h-3 w-3" />
               </span>
             )}
+
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[200px] p-0" align="start">
-        <Command>
+
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        className="w-[--radix-popover-trigger-width] min-w-[200px] max-w-[calc(100vw-1rem)] overflow-hidden p-0"
+      >
+        <Command >
           <CommandInput placeholder={searchPlaceholder} />
-          <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => {
-                const isSelected = option.value === value
-                return (
-                  <CommandItem
-                    key={option.value}
-                    value={option.label}
-                    onSelect={() => {
-                      onChange(isSelected && allowClear ? '' : option.value)
-                      setOpen(false)
-                    }}
-                    className="flex items-center justify-between gap-2"
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      {option.icon && (
-                        <span className="shrink-0 flex items-center">{option.icon}</span>
-                      )}
-                      {option.color && (
-                        <span
-                          className="h-3 w-3 rounded-full shrink-0 border border-border/60"
-                          style={{ backgroundColor: option.color }}
-                        />
-                      )}
-                      <div className="flex flex-col truncate">
-                        <span className="truncate font-medium">{option.label}</span>
-                        {option.description && (
-                          <span className="text-[11px] text-muted-foreground truncate">
-                            {option.description}
+
+          {/* 
+            IMPORTANT:
+            This div is the actual scroll container.
+
+            It intentionally sits outside CommandList so that
+            cmdk cannot interfere with native scrolling.
+          */}
+          <div
+            className="max-h-[50vh] overflow-x-hidden overflow-y-auto overscroll-contain"
+            style={{
+              touchAction: 'pan-y',
+              WebkitOverflowScrolling: 'touch',
+            }}
+            onWheel={(event) => {
+              event.stopPropagation()
+            }}
+            onTouchMove={(event) => {
+              event.stopPropagation()
+            }}
+          >
+            <CommandList className="overflow-visible">
+              <CommandEmpty>
+                {emptyText}
+              </CommandEmpty>
+
+              <CommandGroup>
+                {options.map((option) => {
+                  const isSelected = option.value === value
+
+                  return (
+                    <CommandItem
+                      key={option.value}
+                      value={option.label}
+                      onSelect={() => {
+                        onChange(
+                          isSelected && allowClear
+                            ? ''
+                            : option.value
+                        )
+                        setOpen(false)
+                      }}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <div className="flex min-w-0 items-center gap-2 truncate">
+                        {option.icon && (
+                          <span className="flex shrink-0 items-center">
+                            {option.icon}
                           </span>
                         )}
+
+                        {option.color && (
+                          <span
+                            className="h-3 w-3 shrink-0 rounded-full border border-border/60"
+                            style={{
+                              backgroundColor: option.color,
+                            }}
+                          />
+                        )}
+
+                        <div className="flex min-w-0 flex-col truncate">
+                          <span className="truncate font-medium">
+                            {option.label}
+                          </span>
+
+                          {option.description && (
+                            <span className="truncate text-[11px] text-muted-foreground">
+                              {option.description}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <Check
-                      className={cn(
-                        'h-4 w-4 shrink-0',
-                        isSelected ? 'opacity-100 text-primary' : 'opacity-0'
-                      )}
-                    />
-                  </CommandItem>
-                )
-              })}
-            </CommandGroup>
-          </CommandList>
+
+                      <Check
+                        className={cn(
+                          'h-4 w-4 shrink-0',
+                          isSelected
+                            ? 'text-primary opacity-100'
+                            : 'opacity-0'
+                        )}
+                      />
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            </CommandList>
+          </div>
         </Command>
       </PopoverContent>
     </Popover>
