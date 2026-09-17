@@ -133,7 +133,7 @@ export function Combobox({
         className="w-[--radix-popover-trigger-width] min-w-[200px] max-w-[calc(100vw-1rem)] overflow-hidden p-0"
       >
         <Command >
-          <CommandInput placeholder={searchPlaceholder} />
+          {/* <CommandInput placeholder={searchPlaceholder} /> */}
 
           {/* 
             IMPORTANT:
