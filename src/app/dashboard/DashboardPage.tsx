@@ -10,6 +10,7 @@ import {
   AlertCircle,
   RefreshCw,
   Trash2,
+  Wallet,
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -47,6 +48,7 @@ import {
   useExpenseByCategoryQuery,
   useExpensesQuery,
   useMonthlySpendingQuery,
+  useTotalFundingQuery,
 } from '@/hooks/queries'
 import { formatDate } from '@/utils/formatters'
 import { cn } from '@/lib/utils'
@@ -113,6 +115,12 @@ export function DashboardPage() {
     isError: isRecentExpensesError,
     error: recentExpensesError,
   } = useExpensesQuery(activeProject?.id ?? '', 1, 10)
+
+  // Query total funding for the project
+  const {
+    data: totalFunding = 0,
+    isLoading: isLoadingTotalFunding,
+  } = useTotalFundingQuery(activeProject?.id ?? '')
 
   // Dynamic monthly average spend from real data
   const avgMonthlySpend = useMemo(() => {
@@ -449,27 +457,37 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* October Spend */}
-        {/* <Card className="hover:shadow-level-2 transition-shadow">
+        {/* Total Funding */}
+        <Card className="hover:shadow-level-2 transition-shadow">
           <CardContent className="p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="label-sm text-muted-foreground">October Spend</span>
+              <span className="label-sm text-muted-foreground">Total Funding</span>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/50 dark:border-amber-800">
-                <Calendar className="h-4 w-4" />
+                <Wallet className="h-4 w-4" />
               </div>
             </div>
             <div>
-              <CurrencyDisplay
-                amount={142000}
-                className="font-display text-2xl sm:text-3xl font-bold text-foreground"
-              />
+              {isLoadingTotalFunding || isLoadingProjects ? (
+                <div className="h-9 w-32 bg-muted-foreground/20 rounded animate-pulse" />
+              ) : (
+                <CurrencyDisplay
+                  amount={totalFunding}
+                  className="font-display text-2xl sm:text-3xl font-bold text-foreground"
+                />
+              )}
             </div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-              <span>Current billing cycle</span>
-              <span className="font-semibold text-foreground">14 Transactions</span>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-xs text-muted-foreground">
+                <strong className="font-semibold text-foreground">
+                  {activeProject?.total_budget
+                    ? ((totalFunding / activeProject.total_budget) * 100).toFixed(1)
+                    : '0.0'}%
+                </strong>{' '}
+                of budget funded
+              </span>
             </div>
           </CardContent>
-        </Card> */}
+        </Card>
       </div>
 
       {/* 3. Middle Analytical Section (Monthly Trend + Category Breakdown) */}

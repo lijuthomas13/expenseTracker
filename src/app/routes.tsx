@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { DashboardPage } from '@/app/dashboard/DashboardPage'
 import { ExpensesPage } from '@/app/expenses/ExpensesPage'
+import { FundingPage } from '@/app/funding/FundingPage'
 import { ReportsPage } from '@/app/reports/ReportsPage'
 import { SettingsLayout } from '@/app/settings/SettingsLayout'
 import { GeneralSettingsPage } from '@/app/settings/GeneralSettingsPage'
@@ -52,6 +53,10 @@ export const router = createBrowserRouter([
       {
         path: 'expenses',
         element: <ExpensesPage />,
+      },
+      {
+        path: 'funding',
+        element: <FundingPage />,
       },
       {
         path: 'reports',

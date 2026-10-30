@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Receipt,
+  Landmark,
   Settings,
   Tags,
   Users2,
@@ -22,6 +23,11 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     href: ROUTES.EXPENSES,
     icon: Receipt,
     // badge: 84,
+  },
+  {
+    title: 'Funding',
+    href: ROUTES.FUNDING,
+    icon: Landmark,
   },
   // {
   //   title: 'Reports',

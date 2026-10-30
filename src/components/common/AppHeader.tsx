@@ -55,6 +55,7 @@ export function AppHeader({ onToggleMobileSidebar }: AppHeaderProps) {
   const getPageTitle = () => {
     const path = location.pathname
     if (path.startsWith(ROUTES.EXPENSES)) return 'Expenses'
+    if (path.startsWith(ROUTES.FUNDING)) return 'Funding'
     if (path.startsWith(ROUTES.REPORTS)) return 'Reports'
     if (path.startsWith(ROUTES.SETTINGS_CATEGORIES)) return 'Categories Settings'
     if (path.startsWith(ROUTES.SETTINGS_VENDORS)) return 'Vendors Settings'

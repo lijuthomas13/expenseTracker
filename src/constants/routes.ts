@@ -2,6 +2,7 @@ export const ROUTES = {
   HOME: '/',
   DASHBOARD: '/dashboard',
   EXPENSES: '/expenses',
+  FUNDING: '/funding',
   REPORTS: '/reports',
   SETTINGS: '/settings',
   SETTINGS_CATEGORIES: '/settings/categories',
